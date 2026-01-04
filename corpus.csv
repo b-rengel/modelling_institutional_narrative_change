@@ -1,0 +1,101 @@
+﻿id,persona,text
+1,status_quo_defender,I’m not convinced we have a serious problem here.
+2,status_quo_defender,"From my perspective, people are generally respectful and professional."
+3,status_quo_defender,I haven’t personally seen discriminatory behaviour in my area.
+4,status_quo_defender,"We already have diversity in parts of the organisation, so I’m unsure what needs changing."
+5,status_quo_defender,I worry that focusing on this will create conflict where there isn’t any.
+6,status_quo_defender,I feel uncomfortable with the idea that our systems might be unfair.
+7,status_quo_defender,Our policies already state that everyone should be treated equally.
+8,status_quo_defender,I’m concerned we are over-interpreting limited evidence.
+9,status_quo_defender,It seems like we are doing better than many comparable organisations.
+10,status_quo_defender,I’m not sure it’s appropriate to single out particular groups in policy.
+11,status_quo_defender,"We have values and statements in place, and those should be enough."
+12,status_quo_defender,I don’t want to assume negative intent where there may be none.
+13,status_quo_defender,I worry that people will feel blamed even if they mean well.
+14,status_quo_defender,We should be careful not to damage morale with this messaging.
+15,status_quo_defender,I’d like to see clearer evidence that racism is affecting outcomes here.
+16,status_quo_defender,"I think most issues are about general fairness, not race specifically."
+17,status_quo_defender,We should focus on merit and treat everyone the same.
+18,status_quo_defender,I’m not sure what practical changes are being proposed beyond training.
+19,status_quo_defender,"I support equality in principle, but I don’t see what needs changing day-to-day."
+20,status_quo_defender,I’m concerned that this could become a box-ticking exercise.
+21,procedural_pragmatist,"What actions are required of my team, and by when?"
+22,procedural_pragmatist,I need clear guidance on how to implement this in recruitment and induction.
+23,procedural_pragmatist,I will ensure my team completes the required training modules.
+24,procedural_pragmatist,Can we get a checklist of what good practice looks like for managers?
+25,procedural_pragmatist,I want a template for fair shortlisting and interview processes.
+26,procedural_pragmatist,"If we follow the process correctly, we should reduce risk and inconsistency."
+27,procedural_pragmatist,We should update the policy documents so expectations are explicit.
+28,procedural_pragmatist,"I’m happy to deliver the actions, but I need the steps to be clear."
+29,procedural_pragmatist,We should record completion rates so we can report progress.
+30,procedural_pragmatist,Can we add this to team meeting agendas as a standing item?
+31,procedural_pragmatist,I will ensure job adverts are posted in additional networks as recommended.
+32,procedural_pragmatist,We should document decisions to demonstrate fairness.
+33,procedural_pragmatist,I need to know which metrics we are expected to improve.
+34,procedural_pragmatist,I can incorporate this into our annual planning cycle.
+35,procedural_pragmatist,Please clarify who approves changes to procedures.
+36,procedural_pragmatist,I want examples of wording to use in comms and job packs.
+37,procedural_pragmatist,We should ensure training is completed before the next hiring round.
+38,procedural_pragmatist,"If there is a process for reporting issues, it should be clearly signposted."
+39,procedural_pragmatist,We can show commitment by meeting the targets in the action plan.
+40,procedural_pragmatist,"Once actions are done, we can move on to the next priorities."
+41,learning_orientated_participant,I’m trying to understand how structural racism can show up in everyday processes.
+42,learning_orientated_participant,I want to reflect on how our team culture might feel to different colleagues.
+43,learning_orientated_participant,"I’m open to feedback, even if it’s uncomfortable to hear."
+44,learning_orientated_participant,"I’m not sure where to start, but I want to learn what meaningful action looks like."
+45,learning_orientated_participant,I’d like to hear directly from colleagues about barriers they face.
+46,learning_orientated_participant,I’ve been reading and listening to different perspectives on anti-racism work.
+47,learning_orientated_participant,"I want to understand what the data show, and what it doesn’t show."
+48,learning_orientated_participant,I’m interested in how recruitment practices can unintentionally reproduce inequalities.
+49,learning_orientated_participant,I’d like support to facilitate better conversations in my team.
+50,learning_orientated_participant,I want to move beyond intention and think about impact.
+51,learning_orientated_participant,I’m curious about what works in other organisations and what evidence supports it.
+52,learning_orientated_participant,I want to make changes but I need practical examples to follow.
+53,learning_orientated_participant,I’m thinking about how to make everyday decisions more equitable.
+54,learning_orientated_participant,I’d like to learn how to recognise subtle patterns of exclusion.
+55,learning_orientated_participant,I want to understand how organisational norms become established over time.
+56,learning_orientated_participant,I’m open to changing how we do things if it improves fairness.
+57,learning_orientated_participant,I’m interested in whether small changes can have wider cultural effects.
+58,learning_orientated_participant,I want to ensure this work benefits staff in a real and measurable way.
+59,learning_orientated_participant,I’d like to understand how accountability can be constructive rather than punitive.
+60,learning_orientated_participant,"I want to stay engaged and learn over time, not treat this as a one-off."
+61,accountability_advocate,What outcomes will we measure to know whether change is happening?
+62,accountability_advocate,"Who is responsible for delivery, and what happens if actions aren’t completed?"
+63,accountability_advocate,We need clear reporting lines and transparent progress updates.
+64,accountability_advocate,This should be built into senior leaders’ objectives and performance reviews.
+65,accountability_advocate,"We should track recruitment, progression, and retention patterns over time."
+66,accountability_advocate,Training completion is not enough; we need evidence of behaviour and process change.
+67,accountability_advocate,"We need baseline metrics and targets, even if they are imperfect."
+68,accountability_advocate,"If we say we will act, we must publish what has changed and what hasn’t."
+69,accountability_advocate,"There should be time-bound milestones, not open-ended commitments."
+70,accountability_advocate,We need to prioritise interventions with evidence behind them.
+71,accountability_advocate,"Governance needs to be clear: who signs off, who reviews, who challenges."
+72,accountability_advocate,We should identify where inequalities are greatest and focus effort there.
+73,accountability_advocate,"Accountability should apply to systems, not just individuals."
+74,accountability_advocate,"We should commit resources, not just statements."
+75,accountability_advocate,We need to monitor unintended consequences and adjust actions accordingly.
+76,accountability_advocate,Staff should be able to see progress without needing insider knowledge.
+77,accountability_advocate,"We should treat this as organisational change, not optional personal development."
+78,accountability_advocate,"If barriers are structural, structural solutions should be prioritised."
+79,accountability_advocate,We need routine review so actions don’t fade after initial attention.
+80,accountability_advocate,We should evaluate which actions worked and discontinue those that didn’t.
+81,disengaged_cynic,"I’ve seen initiatives come and go, and I’m not sure this will be different."
+82,disengaged_cynic,"The language changes, but the underlying culture often stays the same."
+83,disengaged_cynic,This feels like a communications exercise rather than real change.
+84,disengaged_cynic,I’m sceptical that leadership will follow through when priorities shift.
+85,disengaged_cynic,"People will do the training, but behaviours won’t change."
+86,disengaged_cynic,I worry this will create extra workload without meaningful outcomes.
+87,disengaged_cynic,It seems like we focus on statements instead of structural action.
+88,disengaged_cynic,I don’t trust that difficult findings will be acted on.
+89,disengaged_cynic,This will probably lose momentum after a few months.
+90,disengaged_cynic,I feel tired of repeating the same conversations.
+91,disengaged_cynic,I’m not sure there’s genuine commitment to changing incentives.
+92,disengaged_cynic,"When problems are raised, they often get minimised or managed away."
+93,disengaged_cynic,I expect progress reporting will focus on easy wins.
+94,disengaged_cynic,I think the organisation will avoid uncomfortable changes.
+95,disengaged_cynic,I’m doubtful that accountability will be real rather than symbolic.
+96,disengaged_cynic,"I’ve heard promises before, and the outcomes didn’t match."
+97,disengaged_cynic,It’s hard to stay engaged when the same barriers persist.
+98,disengaged_cynic,I’m not convinced staff input will lead to action.
+99,disengaged_cynic,"This might help reputationally, but not materially."
+100,disengaged_cynic,I’ll believe it when I see sustained change over time.
