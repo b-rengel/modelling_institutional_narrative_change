@@ -1,0 +1,462 @@
+---
+title: "Modelling institutional narrative change: a synthetic agent-based approach"
+author: "Bek Rengel"
+date: "2025-12-12"
+output:
+  rmdformats::material:
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+# Overview and packages
+This project is a stylised, synthetic agent-based modelling (ABM) exercise exploring how simple text-derived narrative features can be translated into agent parameters and social influence dynamics. It focuses on a fictional example of an organisation aiming to shift institutional narratives towards a more anti-racist stance.
+
+This model is intentionally simple and exploratory. It is not intended to be predictive or representative of real institutions.
+
+All data used in the corpus are synthetic, created by me in order to learn how textual features can be translated into behavioural parameters and explored over time.
+
+```{r packages}
+library(dplyr)
+library(tidyr)
+library(tidytext)
+library(scales)
+library(igraph)
+library(ggplot2)
+```
+
+# Building a text corpus
+The text corpus is synthetic and was written to represent common organisational discourse positions described in  organisational culture change and EDI literature. It is included solely to demonstrate how narrative categories can be operationalised in a toy model, not to describe any specific institution or group.
+
+Five personas were created to function as convenient category labels for clusters of narrative types that may share similar views, perspectives, speech, and/or ways of thinking. They were not designed to represent categories of individual people. I used these personas to guide the writing of 20 made-up statements per persona. I make the assumption that each statement was made by a different individual but that certain statements have thematic overlap. For example, if an organisation gathered perspectives from a sample of its staff and then categorised them into one of five categories, the result would be similar to the synthetic corpus I have produced. 
+
+The personas were:
+
+1. Status-quo defender: skeptical of change, places emphasis on tradition or denial.
+2. Procedural pragmatist: focuses on compliance, actions, and process; may focus on checklists and clearing actions.
+3. Learning-orientated participant: open to learning, reflection, and improvement; may express uncertainty or lack of knowledge.
+4. Accountability advocate: emphasises measurement, responsibility, and the importance of accountability.
+5. Disengaged cynic: views institutional initiatives as performative; may have fatigue or distrust of institutional initiatives due to past inaction.
+
+None of these personas or statements are designed to reflect real-world individuals, organisations, quotes, or ideological positions. 
+
+```{r import-corpus}
+#Load corpus from GitHub (URL below for reproducibility or download from GitHub)
+corpus <- read.csv("docs/corpus.csv", stringsAsFactors = FALSE)
+
+corpus <- mutate(corpus, persona = factor(persona, levels = c(
+  "status_quo_defender",
+  "procedural_pragmatist",
+  "learning_orientated_participant",
+  "accountability_advocate",
+  "disengaged_cynic")))
+str(corpus) #persona should be factor with 5 levels
+summary(corpus$persona) #should be 20 statements for each persona
+```
+
+---
+
+# Text analysis
+Statements were analysed to explore how each narrative was framed in terms of sentiment (positive/negative) and emotion (anger, fear, trust, etc). This helped me identify the most prominent narrative framing of statements by persona. 
+
+I deliberately chose to limit myself to analysing sentiment and emotion for feasibility, as this project is designed as a learning experience. I focused on these two measures because sentiment can help me capture an overall positive/negative stance for the personas' starting point, and emotion can help me understand factors that could be influencing perception and behaviour captured in the statements.
+
+Because this is a small synthetic corpus and a learning exercise, I used lexicon methods because they are transparent and easy to understand and explain, largely because every score can be traced back to the specific words used. However, lexicon-based methods are limited because they cannot account for context, negation, or sarcasm, and different lexicons may produce different profiles. Although suitable as a learning exercise, these methods may not be appropriate for a comparable, real-world scenario.
+
+## Sentiment analysis
+Sentiment analysis followed these steps:
+
+1. Tokenise each statement into individual words.
+2. Look up whether each word is positive or negative using Bing lexicon to model binary sentiment. 
+3. Count positive and negative words for each persona.
+4. Create a normalised net sentiment score ranging from positive to negative. 
+
+Sentiment was measured using a binary lexicon (Bing) rather than a weighted lexicon (e.g. AFINN) due to the small, synthetic nature of the corpus and also for simplicity. It allowed me to explore directional sentiment (positive/negative) rather than intensity of sentiment (very positive/very negative), resulting in a relatively simple parameter for defining my ABM. 
+
+In this synthetic corpus, the lexicon-based sentiment scores suggest that:
+
+- Status-quo defenders show a slightly negative net sentiment, suggesting a mildly defensive or dismissive tone.
+- Procedural pragmatists show the strongest positive sentiment, reflecting solution-focused and action-orientated language.
+- Learning-orientated participants also show a strongly positive sentiment, consistent with openness and reflective engagement.
+- Accountability advocates display a high positive sentiment, indicating constructive but assertive framing.
+- Disengaged cynics show a weakly positive sentiment, suggesting ambivalence rather than overt negativity. 
+
+Overall, sentiment alone distinguishes defensive and disengaged personas from more engaged and action-orientated personas, but does not capture differences in emotional framing.
+
+```{r sentiment}
+sentiment_by_persona_long <- corpus %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing"), by = "word") %>%
+  count(persona, sentiment, name = "n_words")
+
+sentiment_by_persona <- sentiment_by_persona_long %>%
+  pivot_wider(
+    names_from = sentiment,
+    values_from = n_words,
+    values_fill = 0) %>%
+  mutate(
+    total_words = positive + negative,
+    sentiment_net = positive - negative,
+    sentiment_net_norm = ifelse(total_words > 0, sentiment_net/total_words, NA_real_))
+
+sentiment_by_persona
+```
+
+---
+
+## Emotion coding
+Analysis to extract emotion used the following steps:
+
+1. Tokenise text into words.
+2. Use NRC lexicon to label words with emotions.
+3. Count emotions by persona.
+4. Convert to probabilities (scale from 0-1) for comparability in later stages.
+
+In this synthetic corpus, the lexicon-based emotion scores suggest that:
+
+- Status-quo defenders show high levels of sadness and fear, alongside relatively low anticipation, suggesting concern and resistance to change.
+- Procedural pragmatists are characterised by high anticipation and trust, reflecting compliance-focused and forward-looking language.
+- Learning-orientated participants display a balanced emotional profile with high trust and moderate anticipation.
+- Accountability advocates combine high anticipation and trust with low negative emotions, indicating proactive but constructive framing.
+- Disengaged cynics show higher fear and anticipation alongside moderate trust, suggesting uncertainty and withdrawal rather than outright hostility.
+
+These emotional profiles suggest that personas differ not only in sentiment but in the emotional mechanisms through which narratives are framed. As the synthetic corpus was constructed with these personas in mind, these results are to be expected.
+
+```{r emotion}
+emotion_by_persona_raw <- corpus %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("nrc"), by = "word", relationship = "many-to-many") %>%
+  count(persona, sentiment, name = "n_words") %>%
+  filter(sentiment != "positive", sentiment != "negative")
+
+emotion_by_persona_long <- emotion_by_persona_raw %>%
+  group_by(persona) %>%
+  mutate(
+    total_emotion_words = sum(n_words),
+    emotion_prob = n_words / total_emotion_words) %>%
+  ungroup()
+
+emotion_by_persona <- emotion_by_persona_long %>%
+  select(persona, sentiment, emotion_prob) %>%
+  pivot_wider(names_from = sentiment, values_from = emotion_prob, values_fill = 0)
+
+emotion_by_persona
+```
+
+---
+
+# Introduction to this ABM: Overview and limitations
+As a learning exercise for ABM, this project was designed to help me build familiarity with the concept by creating a simple, opinion-dynamics style social-influence model on a network, where agents change their stance via repeated interactions with neighbours. This simplified ABM includes the following basic components commonly found in ABMs:
+
+- An agent population: agents represent a single individual, with their starting state (stance) on anti-racism defined based on persona characteristics. Each agent will share similarities with others in their persona category but have slightly different starting stance for their individual profile. This allows agents to be self-contained rather than exact copies of each other. 
+- A network: each agent will interact with a subset of other agents (neighbours) much like colleagues might interact with team members in a workplace. This allows the agents to be simulated as social and having the potential to be influenced by others. These interactions can drive change in an agent's stance over time. 
+
+Unlike more complex models, this ABM does not contain the following properties, which would have over-complicated this learning exercise:
+
+- Environments: in a standard ABM, agents may be constrained by things like the infrastructure, location, or resources of their environment, which can subsequently affect how their state changes over time. For example, an open-plan office layout may increase the size of a network or frequency of interactions, or a financially high-performing organisation may have more resources available to fund anti-racism interventions. External environments such as social or family networks may also impact an agent's state. 
+- Complex network features: a typical network would not just account for the fact that agents interact with each other, but also for things like directionality (an extremely vocal and popular colleague may have substantial influence on others but is less likely to be influenced), level of influence (a manager might have more influence than a junior staff member), or external networks (an agent may be easily influenced by their social network but less by their work network). A standard ABM network likely has more levels and spheres of influence than the simple one presented below. 
+
+In equivalent, real-world scenarios, ABM would be a particularly useful technique for exploring how different agents behave, and how narratives change over time, in response to a range of interventions or changes. For example, the ABM below models how much narratives for the different personas converge over time, as well as exploring how the personas converge under the influence of an intervention like a leadership comms message. In this way, ABM can help us understand things like the minimum intervention features to trigger a meaningful change, what interventions prove the most useful, and identify areas where agents experience the most rapid/slowest change.
+
+The ABM produced below involved the following steps:
+
+- Initialising the agent population based on the text analysis used above.
+- Defining an interaction network to control the amount of interaction different agents have with each other.
+- Defining the model via a function and modelling change over time for each persona without the influence of any interventions. This is designed to explore convergence under interaction of agents with neighbours without additional intervention.
+- Defining the impact of a leadership message as an intervention and modelling change over time influenced by this intervention.
+
+## Limitations
+This model has a number of limitations including:
+
+- It uses asynchronous updating within each time step meaning that early agents update before later agents. As a result, later agents may have their stance changed based on updated scores from earlier ones rather than original ones.
+- It does not use any established ABM model nor does it draw from one, largely because it is extremely simple in nature. It is based on the simplest concept of an opinion-dynamics style ABM which assumes that individuals change views through social interactions. However, it lacks key features of opinion-dynamics style ABMs such as feedback loops and cognitive biases. 
+- It is extremely simplistic, unable to account for complex networks, various environments, influential agents, and more complex interventions. It therefore cannot be used even as a synthetic exploration of anti-racist culture change in an organisation because it is lacking the necessary depth. 
+- It is based on many assumptions, as well as entirely synthetic data, meaning that it holds no real-world applicability.
+
+# Agent population
+Initialising the agent population involved first creating a combined dataset for sentiment and emotion analysis. I then computed three different behavioural tendencies that could impact an agent's stance:
+
+- Openness: how receptive a persona is to change. I based this on the assumption that emotions like trust and anticipation can support openness, but that fear or sadness reduce it. For example, someone who believes in the organisation and is excited for new ideas is more likely to be open to change. Conversely, a staff member who is afraid of change or who has experienced institutional inertia or apathy may be less responsive to change.
+- Rigidity: how resistant a persona is to change. I based this on the assumption that feelings of fear, sadness, or disgust are likely to increase resistance to change, largely because these emotions are associated with feelings of being afraid or threatened, which can make a person less inclined to embrace new ideas or processes.
+- Voice strength: how strongly this persona tends to push its stance. I based this on the assumption that anger, including righteous anger, can make people more vocal or confident to push their stance. I also assumed that trust can increase confidence and social cohesion, making someone more confident to share their stance.
+
+These behavioural tendencies are not true psychological reflections, but they do function as a way of mapping emotional profiles and exploring different factors that can cause one agent to influence their neighbours. For example, an agent who has high openness but low voice strength may be easier to influence than one who has high values for both. 
+
+These values, as well as the net normalised sentiment, were all rescaled to a 0-1 range (bounded to 0.025-0.975 to avoid extremes and prevent agents being frozen into immovable stances) so that they all operate on the same scale and can be used for further calculations.
+
+```{r combined-data}
+# clean combined dataset
+lower <- 0.025
+upper <- 0.975
+
+combined_data <- sentiment_by_persona %>%
+  select(persona, sentiment_net_norm) %>%
+  left_join(emotion_by_persona, by = "persona")
+combined_data
+
+# dataset containing parameters for personas
+persona_params <- combined_data %>%
+  mutate(
+    openness = (trust + anticipation) - (fear + sadness),
+    rigidity = (fear + sadness + disgust),
+    voice_strength = (anger + trust),
+    openness_scaled = scales::rescale(openness, to = c(lower, upper)),
+    voice_scaled    = scales::rescale(voice_strength, to = c(lower, upper)),
+    rigidity_scaled = scales::rescale(rigidity, to = c(lower, upper)),
+    sentiment_scaled = scales::rescale(sentiment_net_norm, to = c(lower, upper))) %>%
+  select(persona, sentiment_scaled, openness_scaled, rigidity_scaled, voice_scaled)
+persona_params
+```
+
+Synthetic agents were then created based on these behavioural tendencies. This included:
+
+- 200 agents, each assigned one of the five personas. This number was chosen to reflect a small-medium sized organisation.
+- A starting `stance` score derived directly from `sentiment_scaled` to reflect an agent's starting position. Closer to 0 reflected a more negative, anti-change stance; closer to 1 a more positive, pro-change stance. This was bounded to 0.025-0.975 to avoid extreme values and make calculations easier in the later ABM.
+- Random noise was to ensure that stance varies slightly and that agents with the same persona do not have identical starting stances. This is to mimic human behaviour where not every individual will have exactly the same stance as similar, like-minded individuals. 
+
+```{r agents}
+set.seed(123)
+
+n_agents <- 200
+
+agents <- tibble(
+  id = 1:n_agents,
+  persona = sample(levels(corpus$persona), size = n_agents, replace = TRUE)) %>%
+  left_join(persona_params, by = "persona") %>%
+  mutate(
+    stance = sentiment_scaled,
+    stance = pmin(pmax(stance + rnorm(n(), 0, 0.08), lower), upper))
+head(agents, 10)
+
+```
+
+---
+
+# Interaction network
+After defining my agents, I created an interaction network, which was extremely simplified, and only serves to represent who tends to interact with who. 
+
+I used a small-world network to generate a stylised representation of an organisational social structure. This approach is intended to approximate an organisation in which people tend to interact with a small, familiar group (e.g. a team or department) but have a few long-range connections (e.g. cross-team meetings or management structures), allowing information to spread across the whole organisation. This network was structured around the following:
+
+- Size based on 200 agents
+- 1 dimensional lattice following the original Watts-Strogatz model
+- `nei` was set as 5, giving around 10 neighbours per agent. This is based on the assumption that in an organisation of 200 people, I could reasonably expect a team/department to consist of around 10 people, which would imply approximately 20 teams/departments. This also keeps the number of neighbours reasonably small, and maintains simplicity for the network structure and subsequent ABM.
+- Rewiring probability set low (p = 0.05), meaning that about 5% of connections become long-range, and around 95% of connections are within local groups (teams). This assumes that there are relatively few cross-team ties in this fictional organisation. 
+
+I did some simple tests to check that this network would function as expected in the ABM:
+
+- Connectedness was measured as 1, showing that the network is fully connected and all agents are reachable in some way.
+- Average number of neighbours was approximately 10, showing that the resulting network structure follows my modelling assumptions.
+
+This network is not intended to reproduce a specific organisational structure, but instead provides a simple and interpretable baseline that allows for change over time. 
+
+```{r network}
+set.seed(1234)
+network <- sample_smallworld(dim = 1, size = n_agents, nei = 5, p = 0.05)
+
+components(network)$no
+mean(degree(network))
+```
+
+# Defining model logic
+Taking the simple agent population and network defined above, this ABM works on the assumption that:
+
+- Each agent is a single individual in the organisation who has a starting internal stance in relation to anti-racism, ranging between 0 (fully resistant to anti-racist change) and 1 (fully pro-change), bounded to 0.025-0.975 to avoid extreme values.
+- At each time step, agents interact with one neighbour and they may shift their stance as a result of that interaction. Over a series of repeated time steps, we would expect to see agent behaviour overall shifting as a result of these interactions.
+- At one time step, there is a comms intervention that represents a deliberate, institutional move to shift the organisation to a more anti-racist, pro-change mindset. Agents will be differently impacted by this intervention. 
+
+The intervention is designed to mimic a primarily comms-based intervention, designed to push people towards a particular goal. This could encompass:
+
+- leadership statements
+- launch of a policy or strategy
+- light-touch learning/education activities
+- a comms campaign.
+
+It is designed to create a clean way to model how a certain intervention can create a shock to the system and create a noticeable change in stance. The intervention is designed to affect open agents more strongly, and to have lower impact on agents already near the target. It is important to note that this intervention does not take into account who is creating the intervention and their relative level of influence. For example, a comms campaign run by an internal comms team may have excellent reach but little influence, whereas a manager introducing anti-racism to their team may have excellent influence on an immediate team, but limited reach beyond their direct reports.
+
+# Creating a function
+I created a function (`run_abm`) to run the model, which updates stance at every time step under the influence of neighbours and (if applicable) the comms intervention:
+
+- For each agent `i`, the function picks one neighbour `j` at random. If the agent has no neighbours, the model moves to the next agent.
+- It calculates an influenceability (susceptibility) score for agent `i` using openness and rigidity scores. For example, if openness is high and rigidity is low, then influenceability is high. This value is also scaled to 0.025-0.975 to avoid extremes.
+- It then computes how strongly the agent `j` pushes based on voice strength.
+- The stance of agent `i` is updated slightly in the direction of the neighbour `j` stance. For instance, if the neighbour is more pro-change (i.e. `stance_j - stance_i` is a positive number), the agent moves upwards in stance slightly. If the neighbour is more anti-change (i.e. `stance_j - stance_i` is a negative number), the agent moves down slightly. This update is scaled based on the influenceability of agent `i` and voice strength of neighbour  `j`, meaning that updates for an influenceable agent and vocal neighbour would be larger than an update for a less influenceable agent and less vocal neighbour. The updated stance score is capped between 0.025 and 0.975 to align with the original scores and prevent extremes.
+- The function can also model the influence of a comms intervention. Assuming that the intervention is taking place, the function will model the impact of the intervention when it reaches the time step where the intervention takes place. This part of the function will update the stance based on 
+  - How strong the intervention is
+  - The openness of agent `i`
+  - How close agent `i` is to the target stance of the intervention. 
+
+The function was set with the following default parameters:
+
+- `n_steps` was set to 52 on the assumption that each time step represents one week, 52 in a full year. 
+- `step_size` was set below 0.2 to keep updates to stance gradual. This would reflect cultural inertia, particularly in larger organisations where things a slower to change and do not change rapidly at pace. I chose this also to avoid too many extremes in the model.
+- `intervention_step` was set at 10 represented the time step at which the intervention took place, in week 10 of the year. This can be changed and was purely set arbitrarily.
+- `comms_strength` represents the overall power of the comms intervention. For example, an intervention that is persuasive (e.g. "we've committed to becoming anti-racist as an organisation and I want you to join in on this vision) would have a lower strength than one that is prescriptive (e.g. "every team member must complete mandatory training by next quarter").
+- `comms_target` represents the target stance the intervention aims to push agents towards. For example, the intervention may be aiming to have agents acknowledge that there is a problem (more passive intervention, likely lower target stance as it's not asking agents to make a change now) whereas one that aims for agents to take on a professional objective or KPI to institute change may need a higher target stance (more active intervention, need action-orientated change behaviour rather than passive acknowledgement). 
+
+This is a very simple way to model the impact of influence, particularly because it assumes that an agent's stance will always change slightly under the impact of a neighbour. In more complex models (and in real-world situations), agents may not change their stance in relation to their neighbour's at all, and/or agent influenceability may be controlled by a number of factors including environments (home, work, social) and directionality (e.g. manager may have more influence than colleague).
+
+```{r model-update}
+run_abm <- function(agents, network, n_steps = 52, step_size = 0.15, intervention_step = 10, comms_strength = 0.05, comms_target = 0.8, lower = 0.025, upper = 0.975
+) 
+  {history <- vector("list", n_steps)
+  agents_now <- agents
+  for (t in 1:n_steps) {
+    if (intervention_step > 0 && t == intervention_step) {
+      agents_now <- agents_now %>%
+        mutate(
+          stance = pmin(
+            pmax(stance + comms_strength * openness_scaled * (comms_target - stance), lower), upper))}
+    for (i in agents_now$id) {
+      neigh <- neighbors(network, i)
+      if (length(neigh) == 0) next
+      j <- sample(as.integer(neigh), 1)
+      stance_i <- agents_now$stance[agents_now$id == i]
+      stance_j <- agents_now$stance[agents_now$id == j]
+      openness_i <- agents_now$openness_scaled[agents_now$id == i]
+      rigidity_i <- agents_now$rigidity_scaled[agents_now$id == i]
+      influenceability <- pmin(pmax(openness_i * (1 - rigidity_i), lower), upper)
+      voice_j <- agents_now$voice_scaled[agents_now$id == j]
+      delta <- step_size * influenceability * voice_j * (stance_j - stance_i)
+      agents_now$stance[agents_now$id == i] <- pmin(pmax(stance_i + delta, lower), upper)}
+    history[[t]] <- agents_now %>%
+      group_by(persona) %>%
+      summarise(
+        mean_stance = mean(stance),
+        sd_stance = sd(stance),
+        .groups = "drop") %>%
+      mutate(step = t)}
+  list(final_agents = agents_now, history = bind_rows(history))}
+
+```
+
+---
+
+# Running the model
+## Baseline
+Using the `run_abm` function defined above, I modelled how the different personas would change in stance over time. This baseline simulates repeated local influence under the chosen parameters. Depending on the balance of openness, rigidity, and voice, the system may converge, stabilise, or remain separated by persona.
+
+This simple model serves as a baseline against which to test the impact of different interventions.
+
+```{r model-baseline}
+baseline <- run_abm(agents, network, n_steps = 52, step_size = 0.15, intervention_step = 0, comms_strength = 0, comms_target = 0)
+
+baseline_plot <- baseline$history %>%
+  ggplot(aes(x = step, y = mean_stance, colour = persona)) +
+  geom_line(linewidth = 1.1) +
+  labs(
+    title = "Change in mean stance by persona under baseline (no intervention) conditions",
+    x = "Time step",
+    y = "Mean stance",
+    colour = "Persona") +
+  scale_y_continuous(limits = c(0,1)) +
+  scale_colour_discrete(labels = c(
+    status_quo_defender = "Status-quo defender",
+    procedural_pragmatist = "Procedural pragmatist",
+    learning_orientated_participant = "Learning-orientated participant",
+    accountability_advocate = "Accountability advocate",
+    disengaged_cynic = "Disengaged cynic")) +
+  theme_minimal()
+baseline_plot
+```
+
+## Intervention
+Following baseline modelling, I explore the impact of a comms intervention, modelling two different theoretical scenarios.
+
+### Scenario 1: Persuasive leadership message
+
+Scenario 1 is based on the idea of senior leadership sending out a message to all staff encouraging participation in anti-racism initiatives and education. For this scenario, I set the following parameters:
+
+- `intervention_step = 10` based on the assumption that the intervention takes place early in the year
+- `comms_strength = 0.10` based on the assumption that the comms are persuasive (e.g. "we've committed to becoming anti-racist as an organisation and I want you to take part") rather than asking for specific action to be taken.
+- `comms_target = 0.8` based on a target stance of 0.8, where agents are moved closer towards a stance of 0.8. This is a purely arbitrary choice representing a relatively high, but not extremely high, stance. 
+
+```{r model-run-interv}
+intervention <- run_abm(agents, network, n_steps = 52, step_size = 0.15, intervention_step = 10, comms_strength = 0.10, comms_target = 0.8)
+
+intervention_plot <- ggplot(intervention$history,
+       aes(x = step, y = mean_stance, colour = persona, group = persona)) +
+  geom_line(linewidth = 1.1) +
+  labs(
+    title = "Change in mean stance by persona under early, lower-strength leadership intervention",
+    x = "Time step",
+    y = "Mean stance",
+    colour = "Persona") +
+  scale_y_continuous(limits = c(0,1)) +
+    scale_colour_discrete(labels = c(
+    status_quo_defender = "Status-quo defender",
+    procedural_pragmatist = "Procedural pragmatist",
+    learning_orientated_participant = "Learning-orientated participant",
+    accountability_advocate = "Accountability advocate",
+    disengaged_cynic = "Disengaged cynic")) +
+  theme_minimal()
+intervention_plot
+```
+
+### Scenario 2: Prescriptive leadership message
+
+Scenario 2 is based on the idea of senior leadership sending out a message to all staff requiring completion of an anti-racism training module by the end of the year, perhaps as a more firm stance after more persuasive messaging has not had the desired effect on agents' stance. For this scenario, I set the following parameters:
+
+- `intervention_step = 26` based on the assumption that the intervention takes place halfway through the year, once other methods have been tested and have not had noticeable effects
+- `comms_strength = 0.30` based on the assumption that the comms are prescriptive and asking employees to take a specific action by a certain date
+- `comms_target = 0.8` based on a target stance of 0.8, where agents are moved closer towards a stance of 0.8. This a purely arbitrary choice representing a relatively high, but not extremely high, stance. 
+
+```{r model-run-interv-2}
+intervention_2 <- run_abm(agents, network, n_steps = 52, step_size = 0.15, intervention_step = 26, comms_strength = 0.30, comms_target = 0.8)
+
+intervention_plot_2 <- ggplot(intervention_2$history,
+       aes(x = step, y = mean_stance, colour = persona, group = persona)) +
+  geom_line(linewidth = 1.1) +
+  labs(
+    title = "Change in mean stance by persona under mid-year, higher-strength leadership intervention",
+    x = "Time step",
+    y = "Mean stance",
+    colour = "Persona") +
+  scale_y_continuous(limits = c(0,1)) +
+    scale_colour_discrete(labels = c(
+    status_quo_defender = "Status-quo defender",
+    procedural_pragmatist = "Procedural pragmatist",
+    learning_orientated_participant = "Learning-orientated participant",
+    accountability_advocate = "Accountability advocate",
+    disengaged_cynic = "Disengaged cynic")) +
+  theme_minimal()
+intervention_plot_2
+```
+
+---
+
+# References
+I used a number of different sources to learn how to build this ABM. These include:
+
+- Barghi: https://rpubs.com/abarghi/699633
+- Complexity Explorer Agent-Based Modelling Series: https://www.youtube.com/playlist?list=PLF0b3ThojznRKYcrw8moYMUUJK2Ra8Hwl
+- de Marchi & Page (2014): https://faculty.sites.iastate.edu/tesfatsi/archive/tesfatsi/ABMSurvey.DeMarchiPage2014.pdf
+- Ed Boone's Agent Based Models in R Series: https://www.youtube.com/watch?v=l-fldSZMXNc
+- Isaac (2011): https://jasss.soc.surrey.ac.uk/14/2/5.html
+- Lazer (2001): https://www.tandfonline.com/doi/epdf/10.1080/0022250X.2001.9990245?needAccess=true
+- Lennert (2023): https://bookdown.org/f_lennert/book-toolbox_css/agent-based-modeling.html
+- Matejuk (2024): https://medium.com/@kamilmatejuk/complex-network-models-benefits-drawbacks-construction-principles-applications-and-structure-77fc12178ef9
+- National Centre for Research Methods (2018): https://www.youtube.com/watch?v=e9dLh6_ZgW8
+- Neumann (2008): https://jasss.soc.surrey.ac.uk/11/4/6.html
+- Nykamp: https://mathinsight.org/network_introduction
+- Smolla (2015): https://marcosmolla.wordpress.com/2015/07/16/an-introduction-to-agent-based-modelling-in-r/
+- TASO (2025): https://cdn.taso.org.uk/wp-content/uploads/TASO_Agent-based-modelling-briefing.pdf.
+
+
+I used several different sources to construct the personas, with the following being key sources of information:
+
+- Baffour et al. (2023): https://doi.org/10.1016/j.ijedro.2023.100279
+- Crawley (2007): https://www.emerald.com/edi/article-pdf/26/5/497/411888/02610150710756685.pdf
+- Elias, Ben and Hiruy (2023): https://doi.org/10.1177/03128962231151579
+- Krishnan, Orlando and Cook (2025): https://www.employment-studies.co.uk/system/files/resources/files/YouthFutures-IES_REA_Nov2025.pdf
+- NHS Race & health Observatory (2024): https://nhsrho.org/wp-content/uploads/2024/11/7-PRINCIPLES-GRAPHIC.pdf
+- North West Black, Asian and Minority Ethnic Assembly: https://www.england.nhs.uk/north-west/wp-content/uploads/sites/48/2023/07/The-North-West-BAME-Assembly-Anti-racist-Framework-FINAL.pdf
+- Ozturk and Berber (2020): https://doi.org/10.1177/0018726720957727
+
+---
+
+# Reproducibility
+```{r session-info}
+sessionInfo()
+```
